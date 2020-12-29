@@ -32,7 +32,7 @@ class InvoiceBarcode(models.Model):
     bank_barcode = fields.Char(string='Bank Barcode', compute='_compute_bank_barcode', store=True)
 
     def _get_amount_str(self, amount):
-        if amount and amount > 0: # No negative payments
+        if amount and amount > 0:  # No negative payments
             snt, eur = math.modf(amount)
             eur_str = str(int(eur)).rjust(6, '0')
             snt_str = str(int(round(snt * 100))).rjust(2, '0')
@@ -53,7 +53,9 @@ class InvoiceBarcode(models.Model):
         return None
 
     def _get_version(self, ref):
+        print("get_version", ref)
         if ref and ' ' not in ref:
+            print(ref[:2])
             if ref[:2] == 'RF' and ref[2:].isdigit():
                 return 5
             elif ref.isdigit():
@@ -74,8 +76,9 @@ class InvoiceBarcode(models.Model):
         return None
 
     @api.depends('currency_id', 'amount_total', 'invoice_date_due',
-                 'invoice_payment_ref', 'invoice_partner_bank_id')
+                 'payment_reference', 'partner_bank_id')
     def _compute_bank_barcode(self):
+        print("inside compute")
         for record in self:
 
             # Only EUR invoices are supported
@@ -87,26 +90,34 @@ class InvoiceBarcode(models.Model):
                 continue
 
             if record.is_invoice():
-                version = record._get_version(record.invoice_payment_ref)  # Barcode version
+                print("record.is_invoice()", record.is_invoice())
+                version = record._get_version(record.payment_reference)
+                print("version", version)  # Barcode version
 
                 if version:
+                    print("5")
                     inv_sum_str = record._get_amount_str(record.amount_total)
                     inv_date_str = record._get_date_str(record.invoice_date_due)
-                    inv_iban_str = record._get_iban_str(record.invoice_partner_bank_id)
+                    inv_iban_str = record._get_iban_str(record.partner_bank_id)
+                    print(inv_sum_str, inv_date_str, inv_iban_str)
 
                     if version == 5:
                         inv_extra_str = ''  # No padding for version 5
-                        inv_ref_str = record._get_rf_ref_str(record.invoice_payment_ref)
+                        inv_ref_str = record._get_rf_ref_str(record.payment_reference)
                     else:
                         inv_extra_str = '000'  # Padding for version 4
-                        inv_ref_str = record._get_fin_ref_str(record.invoice_payment_ref)
+                        inv_ref_str = record._get_fin_ref_str(record.payment_reference)
 
                     if inv_sum_str and inv_date_str and inv_ref_str and inv_iban_str:
+                        print("4")
                         record.bank_barcode = str(version) + inv_iban_str + \
-                            inv_sum_str + inv_extra_str + inv_ref_str + inv_date_str
+                                              inv_sum_str + inv_extra_str + inv_ref_str + inv_date_str
                     else:
+                        print("1")
                         record.bank_barcode = False
                 else:
+                    print("2")
                     record.bank_barcode = False
             else:
+                print("3")
                 record.bank_barcode = False

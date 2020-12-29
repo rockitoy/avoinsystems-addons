@@ -1,7 +1,7 @@
 # See LICENSE for licensing information
 {
     "name": "Finnish Invoice Delivery Date",
-    "version": "13.0.1.0.0",
+    "version": "14.0.0.0.0",
     "author": "Avoin.Systems",
     "category": "Localization",
     "website": "https://avoin.systems",
