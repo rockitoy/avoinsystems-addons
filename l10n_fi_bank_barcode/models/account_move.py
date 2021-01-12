@@ -47,15 +47,18 @@ class InvoiceBarcode(models.Model):
     def _get_iban_str(self, bank_account):
         if bank_account:
             acc_num = bank_account.acc_number
-            if len(acc_num) == 18 and acc_num[:2] == 'FI' and acc_num[2:].isdigit():
+            acc_num_new = acc_num
+            acc_num_new = acc_num_new.replace(" ", "")
+            acc_num_new.isdigit()
+            if len(acc_num) == 22 and acc_num[:2] == 'FI' and acc_num_new[2:].isdigit():
                 return acc_num[2:]
             return None
         return None
 
     def _get_version(self, ref):
-        print("get_version", ref)
+
         if ref and ' ' not in ref:
-            print(ref[:2])
+
             if ref[:2] == 'RF' and ref[2:].isdigit():
                 return 5
             elif ref.isdigit():
@@ -78,7 +81,7 @@ class InvoiceBarcode(models.Model):
     @api.depends('currency_id', 'amount_total', 'invoice_date_due',
                  'payment_reference', 'partner_bank_id')
     def _compute_bank_barcode(self):
-        print("inside compute")
+
         for record in self:
 
             # Only EUR invoices are supported
@@ -90,16 +93,16 @@ class InvoiceBarcode(models.Model):
                 continue
 
             if record.is_invoice():
-                print("record.is_invoice()", record.is_invoice())
+
                 version = record._get_version(record.payment_reference)
-                print("version", version)  # Barcode version
+
 
                 if version:
-                    print("5")
+
                     inv_sum_str = record._get_amount_str(record.amount_total)
                     inv_date_str = record._get_date_str(record.invoice_date_due)
                     inv_iban_str = record._get_iban_str(record.partner_bank_id)
-                    print(inv_sum_str, inv_date_str, inv_iban_str)
+
 
                     if version == 5:
                         inv_extra_str = ''  # No padding for version 5
@@ -109,15 +112,15 @@ class InvoiceBarcode(models.Model):
                         inv_ref_str = record._get_fin_ref_str(record.payment_reference)
 
                     if inv_sum_str and inv_date_str and inv_ref_str and inv_iban_str:
-                        print("4")
+
                         record.bank_barcode = str(version) + inv_iban_str + \
                                               inv_sum_str + inv_extra_str + inv_ref_str + inv_date_str
                     else:
-                        print("1")
+
                         record.bank_barcode = False
                 else:
-                    print("2")
+
                     record.bank_barcode = False
             else:
-                print("3")
+
                 record.bank_barcode = False
